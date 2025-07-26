@@ -1,7 +1,7 @@
 import { Component, computed, effect, signal } from '@angular/core';
-import {Control, form, required} from '../../experimental/'
+import {Control, form, required} from '../experimental'
 import { JsonPipe } from '@angular/common';
-import { ValidationError } from '../../experimental/src/api/validation_errors';
+import { ValidationError } from '../experimental/src/api/validation_errors';
 
 @Component({
   selector: 'app-root',

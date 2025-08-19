@@ -11,29 +11,20 @@ import {TestBed} from '@angular/core/testing';
 import {
   apply,
   applyEach,
-  applyWhen,
   disabled,
   FieldPath,
   form,
-  MIN,
-  min,
   readonly,
   required,
   REQUIRED,
   Schema,
   schema,
   SchemaOrSchemaFn,
-  submit,
   validate,
   validateTree,
 } from '../../public_api';
 import {ValidationError, WithField} from '../../src/api/validation_errors';
-import {SchemaImpl} from '../../src/schema';
-
-interface TreeData {
-  level: number;
-  next: TreeData;
-}
+import {SchemaImpl} from '../../src/schema/schema';
 
 describe('FieldNode', () => {
   it('can get a child of a key that exists', () => {
@@ -281,7 +272,7 @@ describe('FieldNode', () => {
             disabled(a.name, ({value, fieldOf}) => {
               const el = fieldOf(a);
               expect(el().value().name).toBe(value());
-              expect(fieldOf(p).names.findIndex((e: any) => e === el)).not.toBe(-1);
+              expect([...fieldOf(p).names].findIndex((e: any) => e === el)).not.toBe(-1);
               return true;
             });
           });
@@ -358,6 +349,27 @@ describe('FieldNode', () => {
         expect(f[0] === kirill).toBeTrue();
         expect(f[1] === alex).toBeTrue();
       });
+    });
+  });
+
+  describe('names', () => {
+    it('auto-generates a name for the form', () => {
+      const f = form(signal({}), {injector: TestBed.inject(Injector)});
+      expect(f().name()).toMatch(/^a.form\d+$/);
+    });
+
+    it('uses a specific name for the form when given', () => {
+      const f = form(signal({}), {injector: TestBed.inject(Injector), name: 'test'});
+      expect(f().name()).toBe('test');
+    });
+
+    it('derives child field names from parents', () => {
+      const f = form(signal({user: {firstName: 'Alex'}}), {
+        injector: TestBed.inject(Injector),
+        name: 'test',
+      });
+      expect(f.user().name()).toBe('test.user');
+      expect(f.user.firstName().name()).toBe('test.user.firstName');
     });
   });
 
@@ -762,125 +774,6 @@ describe('FieldNode', () => {
     });
   });
 
-  describe('submit', () => {
-    it('maps errors to a field', async () => {
-      const data = signal({first: '', last: ''});
-      const f = form(
-        data,
-        (name) => {
-          // first name required if last name specified
-          required(name.first, {when: ({valueOf}) => valueOf(name.last) !== ''});
-        },
-        {injector: TestBed.inject(Injector)},
-      );
-
-      await submit(f, (form) => {
-        return Promise.resolve([
-          ValidationError.custom({
-            kind: 'lastName',
-            field: form.last,
-          }),
-        ]);
-      });
-
-      expect(f.last().errors()).toEqual([ValidationError.custom({kind: 'lastName'})]);
-    });
-
-    it('maps errors to a field', async () => {
-      const initialValue = {first: 'meow', last: 'wuf'};
-      const data = signal(initialValue);
-      const f = form(
-        data,
-        (name) => {
-          // first name required if last name specified
-          required(name.first, {when: ({valueOf}) => valueOf(name.last) !== ''});
-        },
-        {injector: TestBed.inject(Injector)},
-      );
-
-      const submitSpy = jasmine.createSpy('submit');
-
-      await submit(f, (form) => {
-        submitSpy(form().value());
-        return Promise.resolve();
-      });
-
-      expect(submitSpy).toHaveBeenCalledWith(initialValue);
-    });
-
-    it('maps untargeted errors to form root', async () => {
-      const data = signal({first: '', last: ''});
-      const f = form(
-        data,
-        (name) => {
-          // first name required if last name specified
-          required(name.first, {when: ({valueOf}) => valueOf(name.last) !== ''});
-        },
-        {injector: TestBed.inject(Injector)},
-      );
-
-      await submit(f, () => {
-        return Promise.resolve([ValidationError.custom()]);
-      });
-
-      expect(f().errors()).toEqual([ValidationError.custom()]);
-    });
-
-    it('marks the form as submitting', async () => {
-      const initialValue = {first: 'meow', last: 'wuf'};
-      const data = signal(initialValue);
-      const f = form(
-        data,
-        (name) => {
-          // first name required if last name specified
-          required(name.first, {when: ({valueOf}) => valueOf(name.last) !== ''});
-        },
-        {injector: TestBed.inject(Injector)},
-      );
-
-      expect(f().submittedStatus()).toBe('unsubmitted');
-
-      let resolvePromise: VoidFunction | undefined;
-
-      const result = submit(f, () => {
-        return new Promise((r) => {
-          resolvePromise = r;
-        });
-      });
-
-      expect(f().submittedStatus()).toBe('submitting');
-
-      expect(resolvePromise).toBeDefined();
-      resolvePromise?.();
-
-      await result;
-    });
-
-    it('works on child fields', async () => {
-      const initialValue = {first: 'meow', last: 'wuf'};
-      const data = signal(initialValue);
-      const f = form(
-        data,
-        (name) => {
-          // first name required if last name specified
-          required(name.first, {
-            when: ({valueOf}) => valueOf(name.last) !== '',
-          });
-        },
-        {injector: TestBed.inject(Injector)},
-      );
-
-      const submitSpy = jasmine.createSpy('submit');
-
-      await submit(f.first, (form) => {
-        submitSpy(form().value());
-        return Promise.resolve([ValidationError.custom({kind: 'lastName'})]);
-      });
-
-      expect(submitSpy).toHaveBeenCalledWith('meow');
-    });
-  });
-
   describe('composition', () => {
     it('should apply schema to field', () => {
       interface Address {
@@ -980,113 +873,6 @@ describe('FieldNode', () => {
       );
 
       expect(() => f().disabled()).toThrowError('Path is not part of this field tree.');
-    });
-
-    it('should support recursive logic', () => {
-      const s = schema<TreeData>((p) => {
-        disabled(p.level, ({valueOf}) => {
-          return valueOf(p.level) % 2 === 0;
-        });
-        apply(p.next, s);
-      });
-      const f = form<TreeData>(
-        signal({level: 0, next: {level: 1, next: {level: 2, next: {level: 3, next: null!}}}}),
-        s,
-        {injector: TestBed.inject(Injector)},
-      );
-      expect(f.level().disabled()).toBe(true);
-      expect(f.next.level().disabled()).toBe(false);
-      expect(f.next.next.level().disabled()).toBe(true);
-      expect(f.next.next.next.level().disabled()).toBe(false);
-    });
-
-    it('should support co-recursive logic', () => {
-      const s1: Schema<TreeData> = schema((p) => {
-        disabled(p.level, ({valueOf}) => valueOf(p.level) % 2 === 0);
-        apply(p.next, s2);
-      });
-      const s2: Schema<TreeData> = schema((p) => {
-        disabled(p.level, ({valueOf}) => valueOf(p.level) % 2 === 0);
-        apply(p.next, s1);
-      });
-      const f = form<TreeData>(
-        signal({
-          level: 0,
-          next: {level: 1, next: {level: 2, next: {level: 3, next: null!}}},
-        }),
-        s1,
-        {injector: TestBed.inject(Injector)},
-      );
-      expect(f.level().disabled()).toBe(true);
-      expect(f.next.level().disabled()).toBe(false);
-      expect(f.next.next.level().disabled()).toBe(true);
-      expect(f.next.next.next.level().disabled()).toBe(false);
-    });
-
-    it('should support recursive logic terminated by a when condition', () => {
-      const s: Schema<TreeData> = schema((p) => {
-        min(p.level, ({valueOf}) => valueOf(p.level));
-        applyWhen(p.next, (ctx) => ctx.valueOf(p.level) !== 2, s);
-      });
-      const f = form<TreeData>(
-        signal({
-          level: 0,
-          next: {level: 1, next: {level: 2, next: {level: 3, next: {level: 4, next: null!}}}},
-        }),
-        s,
-        {injector: TestBed.inject(Injector)},
-      );
-      expect(f.level().property(MIN)()).toBe(0);
-      expect(f.next.level().property(MIN)()).toBe(1);
-      expect(f.next.next.level().property(MIN)()).toBe(2);
-      expect(f.next.next.next.level().property(MIN)()).toBe(undefined);
-      expect(f.next.next.next.next.level().property(MIN)()).toBe(undefined);
-    });
-
-    it('should support recursive logic with arrays', () => {
-      interface Dom {
-        tag: string;
-        children: Dom[];
-      }
-
-      const domSchema = schema<Dom>((p) => {
-        applyEach(p.children, domSchema);
-        applyWhen(
-          p.children,
-          ({valueOf}) => valueOf(p.tag) === 'table',
-          (children) => {
-            applyEach(children, (c) => {
-              validate(c.tag, ({value}) =>
-                value() !== 'tr' ? ValidationError.custom({kind: 'invalid-child'}) : undefined,
-              );
-            });
-          },
-        );
-        applyWhen(
-          p.children,
-          ({valueOf}) => valueOf(p.tag) === 'tr',
-          (children) => {
-            applyEach(children, (c) => {
-              validate(c.tag, ({value}) =>
-                value() !== 'td' ? ValidationError.custom({kind: 'invalid-child'}) : undefined,
-              );
-            });
-          },
-        );
-      });
-
-      const data = signal<Dom>({tag: 'div', children: [{tag: 'span', children: []}]});
-      const f = form(data, domSchema, {injector: TestBed.inject(Injector)});
-      expect(f().valid()).toBe(true);
-
-      data.set({tag: 'table', children: [{tag: 'span', children: []}]});
-      expect(f().valid()).toBe(false);
-
-      data.set({tag: 'table', children: [{tag: 'tr', children: [{tag: 'span', children: []}]}]});
-      expect(f().valid()).toBe(false);
-
-      data.set({tag: 'table', children: [{tag: 'tr', children: [{tag: 'td', children: []}]}]});
-      expect(f().valid()).toBe(true);
     });
   });
 

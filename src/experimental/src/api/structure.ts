@@ -8,10 +8,11 @@
 
 import {inject, Injector, runInInjectionContext, WritableSignal} from '@angular/core';
 
+import {BasicFieldAdapter, FieldAdapter} from '../field/field_adapter';
 import {FormFieldManager} from '../field/manager';
 import {FieldNode} from '../field/node';
-import {FieldPathNode} from '../path_node';
-import {assertPathIsCurrent, isSchemaOrSchemaFn, SchemaImpl} from '../schema';
+import {FieldPathNode} from '../schema/path_node';
+import {assertPathIsCurrent, isSchemaOrSchemaFn, SchemaImpl} from '../schema/schema';
 import type {
   Field,
   FieldPath,
@@ -21,7 +22,7 @@ import type {
   SchemaFn,
   SchemaOrSchemaFn,
 } from './types';
-import {ValidationError, WithField} from './validation_errors';
+import {stripField, ValidationError, WithField} from './validation_errors';
 
 /** Options that may be specified when creating a form. */
 export interface FormOptions {
@@ -30,6 +31,13 @@ export interface FormOptions {
    * current [injection context](guide/di/dependency-injection-context), will be used.
    */
   injector?: Injector;
+  name?: string;
+
+  /**
+   * Adapter allows managing fields in a more flexible way.
+   * Currently this is used to support interop with reactive forms.
+   */
+  adapter?: FieldAdapter;
 }
 
 /** Extracts the model, schema, and options from the arguments passed to `form()`. */
@@ -172,8 +180,9 @@ export function form<TValue>(...args: any[]): Field<TValue> {
   const [model, schema, options] = normalizeFormArgs<TValue>(args);
   const injector = options?.injector ?? inject(Injector);
   const pathNode = runInInjectionContext(injector, () => SchemaImpl.rootCompile(schema));
-  const fieldManager = new FormFieldManager(injector);
-  const fieldRoot = FieldNode.newRoot(fieldManager, model, pathNode);
+  const fieldManager = new FormFieldManager(injector, options?.name);
+  const adapter = options?.adapter ?? new BasicFieldAdapter();
+  const fieldRoot = FieldNode.newRoot(fieldManager, model, pathNode, adapter);
   fieldManager.createFieldManagementEffect(fieldRoot.structure);
 
   return fieldRoot.fieldProxy as Field<TValue>;
@@ -281,7 +290,7 @@ export function applyWhen<TValue>(
 export function applyWhenValue<TValue, TNarrowed extends TValue>(
   path: FieldPath<TValue>,
   predicate: (value: TValue) => value is TNarrowed,
-  schema: NoInfer<SchemaOrSchemaFn<TNarrowed>>,
+  schema: SchemaOrSchemaFn<TNarrowed>,
 ): void;
 
 /**
@@ -341,13 +350,44 @@ export async function submit<TValue>(
   form: Field<TValue>,
   action: (form: Field<TValue>) => Promise<(ValidationError | WithField<ValidationError>)[] | void>,
 ) {
-  const api = form() as FieldNode;
-  api.submitState.selfSubmittedStatus.set('submitting');
-  const errors = (await action(form)) || [];
-  for (const error of errors) {
-    ((error.field ?? form)() as FieldNode).submitState.setServerErrors(error);
+  const node = form() as FieldNode;
+  markAllAsTouched(node);
+
+  // Fail fast if the form is already invalid.
+  if (node.invalid()) {
+    return;
   }
-  api.submitState.selfSubmittedStatus.set('submitted');
+
+  node.submitState.selfSubmitting.set(true);
+  try {
+    const errors = await action(form);
+    errors && setServerErrors(node, errors);
+  } finally {
+    node.submitState.selfSubmitting.set(false);
+  }
+}
+
+/**
+ * Sets a list of server errors to their individual fields.
+ *
+ * @param submittedField The field that was submitted, resulting in the errors.
+ * @param errors The errors to set.
+ */
+function setServerErrors(
+  submittedField: FieldNode,
+  errors: (ValidationError | WithField<ValidationError>)[],
+) {
+  const errorsByField = new Map<FieldNode, ValidationError[]>();
+  for (const error of errors) {
+    const field = (error.field?.() as FieldNode) ?? submittedField;
+    if (!errorsByField.has(field)) {
+      errorsByField.set(field, []);
+    }
+    errorsByField.get(field)!.push(stripField(error));
+  }
+  for (const [field, fieldErrors] of errorsByField) {
+    field.submitState.serverErrors.set(fieldErrors);
+  }
 }
 
 /**
@@ -358,4 +398,12 @@ export async function submit<TValue>(
  */
 export function schema<TValue>(fn: SchemaFn<TValue>): Schema<TValue> {
   return SchemaImpl.create(fn) as unknown as Schema<TValue>;
+}
+
+/** Marks a {@link node} and its descendants as touched. */
+function markAllAsTouched(node: FieldNode) {
+  node.markAsTouched();
+  for (const child of node.structure.children()) {
+    markAllAsTouched(child);
+  }
 }

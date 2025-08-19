@@ -8,65 +8,35 @@
 
 import {computed, Signal, untracked, WritableSignal} from '@angular/core';
 import {Field, FieldContext, FieldPath, FieldState} from '../api/types';
-import {FieldPathNode} from '../path_node';
-import {isArray} from '../util/is_array';
-import {FieldNode} from './node';
-
-let boundPathDepth = 0;
-
-/**
- * Sets the bound path depth for the duration of the given logic function.
- * This is used to ensure that the field resolution algorithm walks far enough up the field tree to
- * reach the point where the root of the path we're bound to is applied. This normally isn't a big
- * concern, but matters when we're dealing with recursive structures.
- *
- * Consider this example:
- *
- * ```
- * const s = schema(p => {
- *   disabled(p.next, ({valueOf}) => valueOf(p.data));
- *   apply(p.next, s);
- * });
- * ```
- *
- * Here we need to know that the `disabled` logic was bound to a path of depth 1. Otherwise we'd
- * attempt to resolve `p.data` in the context of the field corresponding to `p.next`.
- * The resolution algorithm would start with the field for `p.next` and see that it *does* contain
- * the logic for `s` (due to the fact that its recursively applied.) It would then decide not to
- * walk up the field tree at all, and to immediately start walking down the keys for the target path
- * `p.data`, leading it to grab the field corresponding to `p.next.data`.
- *
- * We avoid the problem described above by keeping track of the depth (relative to Schema root) of
- * the path we were bound to. We then require the resolution algorithm to walk at least that far up
- * the tree before finding a node that contains the logic for `s`.
- *
- * @param fn
- * @param depth
- * @returns
- */
-// TODO: Is there a way we can do this without needing to wrap each logic function?
-export function setBoundPathDepthForResolution<A extends any[], R>(
-  fn: (...args: A) => R,
-  depth: number,
-): (...args: A) => R {
-  return (...args: A) => {
-    try {
-      boundPathDepth = depth;
-      return fn(...args);
-    } finally {
-      boundPathDepth = 0;
-    }
-  };
-}
+import {FieldPathNode} from '../schema/path_node';
+import {isArray} from '../util/type_guards';
+import type {FieldNode} from './node';
+import {boundPathDepth} from './resolution';
 
 /**
  * `FieldContext` implementation, backed by a `FieldNode`.
  */
 export class FieldNodeContext implements FieldContext<unknown> {
+  /**
+   * Cache of paths that have been resolved for this context.
+   *
+   * For each resolved path we keep track of a signal of field that it maps to rather than a static
+   * field, since it theoretically could change. In practice for the current system it should not
+   * actually change, as they only place we currently track fields moving within the parent
+   * structure is for arrays, and paths do not currently support array indexing.
+   */
   private readonly cache = new WeakMap<FieldPath<unknown>, Signal<Field<unknown>>>();
 
-  constructor(private readonly node: FieldNode) {}
+  constructor(
+    /** The field node this context corresponds to. */
+    private readonly node: FieldNode,
+  ) {}
 
+  /**
+   * Resolves a target path relative to this context.
+   * @param target The path to resolve
+   * @returns The field corresponding to the target path.
+   */
   private resolve<U>(target: FieldPath<U>): Field<U> {
     if (!this.cache.has(target)) {
       const resolver = computed<Field<unknown>>(() => {
@@ -93,7 +63,12 @@ export class FieldNodeContext implements FieldContext<unknown> {
         for (let key of targetPathNode.keys) {
           field = field.structure.getChild(key);
           if (field === undefined) {
-            throw new Error(`Resolved field does not exist.`);
+            throw new Error(
+              `Cannot resolve path .${targetPathNode.keys.join('.')} relative to field ${[
+                '<root>',
+                ...this.node.structure.pathKeys(),
+              ].join('.')}.`,
+            );
           }
         }
 

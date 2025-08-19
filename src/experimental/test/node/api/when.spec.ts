@@ -16,7 +16,7 @@ import {
   form,
   validate,
 } from '../../../public_api';
-import { ValidationError } from '../../../src/api/validation_errors';
+import {ValidationError} from '../../../src/api/validation_errors';
 
 export interface User {
   first: string;

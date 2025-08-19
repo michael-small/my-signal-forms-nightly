@@ -9,12 +9,15 @@ import {provideHttpClient} from '@angular/common/http';
 import {HttpTestingController, provideHttpClientTesting} from '@angular/common/http/testing';
 import {ApplicationRef, Injector, Resource, resource, signal} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
+import {isNode} from '@angular/private/testing';
 
 import {
   applyEach,
   form,
   Property,
   property,
+  required,
+  schema,
   SchemaOrSchemaFn,
   validate,
   validateAsync,
@@ -26,13 +29,19 @@ interface Cat {
   name: string;
 }
 
+interface Address {
+  street: string;
+  city: string;
+  zip: string;
+}
+
 describe('resources', () => {
   let appRef: ApplicationRef;
   let backend: HttpTestingController;
   let injector: Injector;
 
   beforeEach(() => {
-    globalThis['ngServerMode'] = true;
+    globalThis['ngServerMode'] = isNode;
   });
 
   afterEach(() => {
@@ -245,5 +254,30 @@ describe('resources', () => {
     expect(usernameForm().valid()).toBe(false);
     expect(usernameForm().invalid()).toBe(true);
     expect(usernameForm().pending()).toBe(false);
+  });
+
+  it('should only run async validation when synchronously valid', async () => {
+    const addressModel = signal<Address>({street: '', city: '', zip: ''});
+    const addressSchema = schema<Address>((address) => {
+      required(address.street);
+      validateHttp(address, {
+        request: ({value}) => ({url: '/checkaddress', params: {...value()}}),
+        errors: (message: string, {fieldOf}) =>
+          ValidationError.custom({message, field: fieldOf(address.street)}),
+      });
+    });
+    const addressForm = form(addressModel, addressSchema, {injector});
+
+    TestBed.tick();
+    backend.expectNone(() => true);
+
+    addressForm.street().value.set('123 Main St');
+
+    TestBed.tick();
+    const req = backend.expectOne('/checkaddress?street=123%20Main%20St&city=&zip=');
+    req.flush('Invalid!');
+    await appRef.whenStable();
+
+    expect(addressForm.street().errors()).toEqual([ValidationError.custom({message: 'Invalid!'})]);
   });
 });

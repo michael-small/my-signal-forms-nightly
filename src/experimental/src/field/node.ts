@@ -6,47 +6,52 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 
-import type {Signal, WritableSignal} from '@angular/core';
+import {Signal, WritableSignal} from '@angular/core';
 import {AggregateProperty, Property} from '../api/property';
-import type {DisabledReason, Field, FieldContext, FieldState, SubmittedStatus} from '../api/types';
+import type {DisabledReason, Field, FieldContext, FieldState} from '../api/types';
 import type {ValidationError} from '../api/validation_errors';
-
-import {
-  ChildFieldNodeOptions,
-  ChildFieldNodeStructure,
-  FieldNodeOptions,
-  FieldNodeStructure,
-  RootFieldNodeStructure,
-} from './structure';
-
-import {LogicNode} from '../logic_node_2';
-import {FieldPathNode} from '../path_node';
+import type {Control} from '../controls/control';
+import {LogicNode} from '../schema/logic_node';
+import {FieldPathNode} from '../schema/path_node';
 import {FieldNodeContext} from './context';
 import type {FormFieldManager} from './manager';
 import {FieldPropertyState} from './property';
 import {FIELD_PROXY_HANDLER} from './proxy';
 import {FieldNodeState} from './state';
+import {
+  type ChildFieldNodeOptions,
+  ChildFieldNodeStructure,
+  type FieldNodeOptions,
+  type FieldNodeStructure,
+  RootFieldNodeStructure,
+} from './structure';
 import {FieldSubmitState} from './submit';
-import {FieldValidationState} from './validation';
+import {ValidationState} from './validation';
+
+import type {FieldAdapter} from './field_adapter';
 
 /**
- * Internal node in the form graph for a given field.
+ * Internal node in the form tree for a given field.
  *
  * Field nodes have several responsibilities:
- *  - they track instance state for the particular field (touched)
- *  - they compute signals for derived state (valid, disabled, etc) based on their associated
+ *  - They track instance state for the particular field (touched)
+ *  - They compute signals for derived state (valid, disabled, etc) based on their associated
  *    `LogicNode`
- *  - they act as the public API for the field (they implement the `FieldState` interface)
- *  - they implement navigation of the form graph via `.parent` and `.getChild()`.
+ *  - They act as the public API for the field (they implement the `FieldState` interface)
+ *  - They implement navigation of the form tree via `.parent` and `.getChild()`.
+ *
+ * This class is largely a wrapper that aggregates several smaller pieces that each manage a subset of
+ * the responsibilities.
  */
 export class FieldNode implements FieldState<unknown> {
   readonly structure: FieldNodeStructure;
-  readonly validationState: FieldValidationState;
+  readonly validationState: ValidationState;
   readonly propertyState: FieldPropertyState;
   readonly nodeState: FieldNodeState;
   readonly submitState: FieldSubmitState;
 
   private _context: FieldContext<unknown> | undefined = undefined;
+  readonly fieldAdapter: FieldAdapter;
 
   get context(): FieldContext<unknown> {
     return (this._context ??= new FieldNodeContext(this));
@@ -57,29 +62,11 @@ export class FieldNode implements FieldState<unknown> {
    */
   readonly fieldProxy = new Proxy(() => this, FIELD_PROXY_HANDLER) as unknown as Field<any>;
 
-  private constructor(options: FieldNodeOptions) {
-    this.structure =
-      options.kind === 'root'
-        ? new RootFieldNodeStructure(
-            this,
-            options.logicPath,
-            options.logic,
-            options.fieldManager,
-            options.value,
-            FieldNode.newChild,
-          )
-        : new ChildFieldNodeStructure(
-            this,
-            options.logicPath,
-            options.logic,
-            options.parent,
-            options.identityInParent,
-            options.initialKeyInParent,
-            FieldNode.newChild,
-          );
-
-    this.validationState = new FieldValidationState(this);
-    this.nodeState = new FieldNodeState(this);
+  constructor(options: FieldNodeOptions) {
+    this.fieldAdapter = options.fieldAdapter;
+    this.structure = this.fieldAdapter.createStructure(this, options);
+    this.validationState = this.fieldAdapter.createValidationState(this, options);
+    this.nodeState = this.fieldAdapter.createNodeState(this, options);
     this.propertyState = new FieldPropertyState(this);
     this.submitState = new FieldSubmitState(this);
   }
@@ -94,14 +81,6 @@ export class FieldNode implements FieldState<unknown> {
 
   get keyInParent(): Signal<string | number> {
     return this.structure.keyInParent;
-  }
-
-  get syncErrors(): Signal<ValidationError[]> {
-    return this.validationState.syncErrors;
-  }
-
-  get syncValid(): Signal<boolean> {
-    return this.validationState.syncValid;
   }
 
   get errors(): Signal<ValidationError[]> {
@@ -144,8 +123,16 @@ export class FieldNode implements FieldState<unknown> {
     return this.nodeState.readonly;
   }
 
-  get submittedStatus(): Signal<SubmittedStatus> {
-    return this.submitState.submittedStatus;
+  get controls(): Signal<readonly Control<unknown>[]> {
+    return this.nodeState.controls;
+  }
+
+  get submitting(): Signal<boolean> {
+    return this.submitState.submitting;
+  }
+
+  get name(): Signal<string> {
+    return this.nodeState.name;
   }
 
   property<M>(prop: AggregateProperty<M, any>): Signal<M>;
@@ -153,28 +140,22 @@ export class FieldNode implements FieldState<unknown> {
   property<M>(prop: Property<M> | AggregateProperty<M, any>): Signal<M> | M | undefined {
     return this.propertyState.get(prop);
   }
-
-  /**
-   * Resets the submitted status of this field and all of its children.
-   */
-  resetSubmittedStatus(): void {
-    this.submitState.reset();
+  hasProperty(prop: Property<unknown> | AggregateProperty<unknown, any>): boolean {
+    return this.propertyState.has(prop);
   }
 
   /**
    * Marks this specific field as touched.
    */
   markAsTouched(): void {
-    // TODO: should this be noop for fields that are hidden/disabled/readonly
-    this.nodeState.selfTouched.set(true);
+    this.nodeState.markAsTouched();
   }
 
   /**
    * Marks this specific field as dirty.
    */
   markAsDirty(): void {
-    // TODO: should this be noop for fields that are hidden/disabled/readonly
-    this.nodeState.selfDirty.set(true);
+    this.nodeState.markAsDirty();
   }
 
   /**
@@ -183,29 +164,62 @@ export class FieldNode implements FieldState<unknown> {
    * Note this does not change the data model, which can be reset directly if desired.
    */
   reset(): void {
-    this.nodeState.selfTouched.set(false);
-    this.nodeState.selfDirty.set(false);
+    this.nodeState.markAsUntouched();
+    this.nodeState.markAsPristine();
 
     for (const child of this.structure.children()) {
       child.reset();
     }
   }
 
+  /**
+   * Creates a new root field node for a new form.
+   */
   static newRoot<T>(
-    formRoot: FormFieldManager,
+    fieldManager: FormFieldManager,
     value: WritableSignal<T>,
-    logicPath: FieldPathNode,
+    pathNode: FieldPathNode,
+    adapter: FieldAdapter,
   ): FieldNode {
-    return new FieldNode({
-      kind: 'root',
-      fieldManager: formRoot,
-      value,
-      logicPath,
-      logic: logicPath.logic.build(),
-    });
+    return adapter.newRoot(fieldManager, value, pathNode, adapter);
   }
 
+  /**
+   * Creates a child field node based on the given options.
+   */
   private static newChild(options: ChildFieldNodeOptions): FieldNode {
-    return new FieldNode(options);
+    return options.fieldAdapter.newChild(options);
   }
+
+  createStructure(options: FieldNodeOptions) {
+    return options.kind === 'root'
+      ? new RootFieldNodeStructure(
+          this,
+          options.pathNode,
+          options.logic,
+          options.fieldManager,
+          options.value,
+          options.fieldAdapter,
+          FieldNode.newChild,
+        )
+      : new ChildFieldNodeStructure(
+          this,
+          options.pathNode,
+          options.logic,
+          options.parent,
+          options.identityInParent,
+          options.initialKeyInParent,
+          options.fieldAdapter,
+          FieldNode.newChild,
+        );
+  }
+}
+
+/**
+ * Field node of a field that has children.
+ * This simplifies and makes certain types cleaner.
+ */
+export interface ParentFieldNode extends FieldNode {
+  readonly value: WritableSignal<Record<string, unknown>>;
+  readonly structure: FieldNodeStructure & {value: WritableSignal<Record<string, unknown>>};
 }

@@ -1,10 +1,11 @@
-load("//tools:defaults.bzl", "jasmine_node_test", "karma_web_test_suite", "ts_library")
+load("//tools:defaults2.bzl", "ts_project", "zoneless_jasmine_test")
 
-ts_library(
+ts_project(
     name = "test_lib",
     testonly = True,
     srcs = glob(["**/*.ts"]),
     deps = [
+        "//:node_modules/zod",
         "//packages/common/http",
         "//packages/common/http/testing",
         "//packages/core",
@@ -14,26 +15,15 @@ ts_library(
         "//packages/platform-browser",
         "//packages/platform-browser/testing",
         "//packages/private/testing",
-        "@npm//zod",
     ],
 )
 
 # To run this:
 # yarn bazel test //packages/forms/experimental/test/node:test
 
-jasmine_node_test(
+zoneless_jasmine_test(
     name = "test",
-    bootstrap = ["//tools/testing:node"],
-    deps = [
-        ":test_lib",
-    ],
-)
-
-# yarn bazel test //packages/forms/experimental/test/node:test_web_chromium
-karma_web_test_suite(
-    name = "test_web",
-    tags = ["manual"],
-    deps = [
+    data = [
         ":test_lib",
     ],
 )

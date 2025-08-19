@@ -7,16 +7,20 @@
  */
 
 import {computed, linkedSignal, Signal, signal, WritableSignal} from '@angular/core';
-import type {SubmittedStatus, TreeValidationResult} from '../api/types';
-import {stripField, type ValidationError} from '../api/validation_errors';
-import {isArray} from '../util/is_array';
+import {ValidationError} from '../api/validation_errors';
 import type {FieldNode} from './node';
 
 /**
  * State of a `FieldNode` that's associated with form submission.
  */
 export class FieldSubmitState {
-  readonly selfSubmittedStatus = signal<SubmittedStatus>('unsubmitted');
+  /**
+   * Whether this field was directly submitted (as opposed to indirectly by a parent field being submitted)
+   * and is still in the process of submitting.
+   */
+  readonly selfSubmitting = signal<boolean>(false);
+
+  /** Server errors that are associated with this field. */
   readonly serverErrors: WritableSignal<readonly ValidationError[]>;
 
   constructor(private readonly node: FieldNode) {
@@ -27,22 +31,10 @@ export class FieldSubmitState {
   }
 
   /**
-   * The submitted status of the form.
+   * Whether this form is currently in the process of being submitted.
+   * Either because the field was submitted directly, or because a parent field was submitted.
    */
-  readonly submittedStatus: Signal<SubmittedStatus> = computed(() =>
-    this.selfSubmittedStatus() !== 'unsubmitted'
-      ? this.selfSubmittedStatus()
-      : (this.node.structure.parent?.submitState.submittedStatus() ?? 'unsubmitted'),
-  );
-
-  setServerErrors(result: Exclude<TreeValidationResult, null | undefined>) {
-    this.serverErrors.set(isArray(result) ? result.map(stripField) : [stripField(result)]);
-  }
-
-  reset(): void {
-    this.selfSubmittedStatus.set('unsubmitted');
-    for (const child of this.node.structure.children()) {
-      child.submitState.reset();
-    }
-  }
+  readonly submitting: Signal<boolean> = computed(() => {
+    return this.selfSubmitting() || (this.node.structure.parent?.submitting() ?? false);
+  });
 }

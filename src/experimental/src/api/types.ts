@@ -7,8 +7,9 @@
  */
 
 import {Signal, WritableSignal} from '@angular/core';
+import type {Control} from '../controls/control';
 import {AggregateProperty, Property} from './property';
-import {ValidationError, WithField} from './validation_errors';
+import type {ValidationError, WithField} from './validation_errors';
 
 /**
  * Symbol used to retain generic type information when it would otherwise be lost.
@@ -38,12 +39,14 @@ export declare namespace PathKind {
      */
     [ɵɵTYPE]: 'root' | 'child' | 'item';
   }
+
   /**
    * The `PathKind` for a `FieldPath` that is a child of another `FieldPath`.
    */
   export interface Child extends PathKind.Root {
     [ɵɵTYPE]: 'child' | 'item';
   }
+
   /**
    * The `PathKind` for a `FieldPath` that is an item in a `FieldPath` array.
    */
@@ -52,7 +55,6 @@ export declare namespace PathKind {
   }
 }
 export type PathKind = PathKind.Root | PathKind.Child | PathKind.Item;
-
 /**
  * A status indicating whether a field is unsubmitted, submitted, or currently submitting.
  */
@@ -145,10 +147,32 @@ export type Field<TValue, TKey extends string | number = string | number> = (() 
   TKey
 >) &
   (TValue extends Array<infer U>
-    ? Array<MaybeField<U, number>>
+    ? ReadonlyArrayLike<MaybeField<U, number>>
     : TValue extends Record<string, any>
-      ? {[K in keyof TValue]: MaybeField<TValue[K], string>}
+      ? Subfields<TValue>
       : unknown);
+
+/**
+ * The sub-fields that a user can navigate to from a `Field<TValue>`.
+ *
+ * @template TValue The type of the data which the parent field is wrapped around.
+ */
+export type Subfields<TValue> = {
+  readonly [K in keyof TValue as TValue[K] extends Function ? never : K]: MaybeField<
+    TValue[K],
+    string
+  >;
+};
+
+/**
+ * An iterable object with the same shape as a readonly array.
+ *
+ * @template T The array item type.
+ */
+export type ReadonlyArrayLike<T> = Pick<
+  ReadonlyArray<T>,
+  number | 'length' | typeof Symbol.iterator
+>;
 
 /**
  * Helper type for defining `Field`. Given a type `TValue` that may include `undefined`, it extracts
@@ -182,6 +206,21 @@ export interface FieldState<TValue, TKey extends string | number = string | numb
    * A signal indicating whether field value has been changed by user.
    */
   readonly dirty: Signal<boolean>;
+
+  /**
+   * A signal indicating whether a field is hidden.
+   *
+   * When a field is hidden it is ignored when determining the valid, touched, and dirty states.
+   * TODO: Looks like touched/dirty is not implemented yet.
+   *
+   * Note: This doesn't hide the field in the template, that must be done manually.
+   *
+   *   @if (!field.hidden()) {
+   *     ...
+   *   }
+   */
+  readonly hidden: Signal<boolean>;
+
   /**
    * A signal indicating whether the field is currently disabled.
    */
@@ -198,10 +237,6 @@ export interface FieldState<TValue, TKey extends string | number = string | numb
    * A signal containing the current errors for the field.
    */
   readonly errors: Signal<ValidationError[]>;
-  /**
-   * A signal containing the current errors for the field.
-   */
-  readonly syncErrors: Signal<ValidationError[]>;
   /**
    * A signal indicating whether the field's value is currently valid.
    *
@@ -231,25 +266,30 @@ export interface FieldState<TValue, TKey extends string | number = string | numb
    */
   readonly pending: Signal<boolean>;
   /**
-   * A signal indicating whether the field's value is currently valid according to its synchronous
-   * validators. (The field's asynchronous validators may still be pending or failing).
+   * A signal indicating whether the field is currently in the process of being submitted.
    */
-  readonly syncValid: Signal<boolean>;
+  readonly submitting: Signal<boolean>;
   /**
-   * A signal indicating whether the field is currently unsubmitted, submitted, or in the process of
-   * being submitted.
+   * A signal of a unique name for the field, by default based on the name of its parent field.
    */
-  readonly submittedStatus: Signal<SubmittedStatus>;
+  readonly name: Signal<string>;
+
   /**
    * The property key in the parent field under which this field is stored. If the parent field is
    * array-valued, for example, this is the index of this field in that array.
    */
   readonly keyInParent: Signal<TKey>;
   /**
+   * A signal containing the `Control` directives this field is currently bound to.
+   */
+  readonly controls: Signal<readonly Control<unknown>[]>;
+
+  /**
    * Reads an aggregate property value from the field.
    * @param prop The property to read.
    */
   property<M>(prop: AggregateProperty<M, any>): Signal<M>;
+
   /**
    * Reads a property value from the field.
    * @param prop The property key to read.
@@ -257,9 +297,15 @@ export interface FieldState<TValue, TKey extends string | number = string | numb
   property<M>(prop: Property<M>): M | undefined;
 
   /**
+   * Checks whether the given metadata key has been defined for this field.
+   */
+  hasProperty(key: Property<any> | AggregateProperty<any, any>): boolean;
+
+  /**
    * Sets the touched status of the field to `true`.
    */
   markAsTouched(): void;
+
   /**
    * Sets the dirty status of the field to `true`.
    */
@@ -271,11 +317,6 @@ export interface FieldState<TValue, TKey extends string | number = string | numb
    * Note this does not change the data model, which can be reset directly if desired.
    */
   reset(): void;
-
-  /**
-   * Resets the `submittedStatus` of the field and all descendant fields to unsubmitted.
-   */
-  resetSubmittedStatus(): void;
 }
 
 /**
@@ -288,11 +329,25 @@ export interface FieldState<TValue, TKey extends string | number = string | numb
  */
 export type FieldPath<TValue, TPathKind extends PathKind = PathKind.Root> = {
   [ɵɵTYPE]: [TValue, TPathKind];
-} & (TValue extends any[]
-  ? {}
-  : TValue extends Record<PropertyKey, any>
-    ? {[K in keyof TValue]: FieldPath<TValue[K], PathKind.Child>}
-    : {});
+} & (TValue extends Array<unknown>
+  ? unknown
+  : TValue extends Record<string, any>
+    ? {[K in keyof TValue]: MaybeFieldPath<TValue[K], PathKind.Child>}
+    : unknown);
+
+/**
+ * Helper type for defining `FieldPath`. Given a type `TValue` that may include `undefined`, it
+ * extracts the `undefined` outside the `FieldPath` type.
+ *
+ * For example `MaybeFieldPath<{a: number} | undefined, PathKind.Child>` would be equivalent to
+ * `undefined | Field<{a: number}, PathKind.child>`.
+ *
+ * @template TValue The type of the data which the field is wrapped around.
+ * @template TPathKind The kind of path (root field, child field, or item of an array)
+ */
+export type MaybeFieldPath<TValue, TPathKind extends PathKind = PathKind.Root> =
+  | (TValue & undefined)
+  | FieldPath<Exclude<TValue, undefined>, TPathKind>;
 
 /**
  * Defines logic for a form.

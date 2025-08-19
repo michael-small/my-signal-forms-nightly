@@ -9,8 +9,8 @@
 import {httpResource, HttpResourceOptions, HttpResourceRequest} from '@angular/common/http';
 import {computed, ResourceRef, Signal} from '@angular/core';
 import {FieldNode} from '../field/node';
-import {FieldPathNode} from '../path_node';
-import {assertPathIsCurrent} from '../schema';
+import {FieldPathNode} from '../schema/path_node';
+import {assertPathIsCurrent} from '../schema/schema';
 import {property} from './logic';
 import {FieldContext, FieldPath, PathKind, TreeValidationResult} from './types';
 import {addDefaultField} from './validation_errors';
@@ -122,6 +122,7 @@ export interface HttpValidatorOptions<TValue, TResult, TPathKind extends PathKin
 
 /**
  * Adds async validation to the field corresponding to the given path based on a resource.
+ * Async validation for a field only runs once all synchronous validation is passing.
  *
  * @param path A path indicating the field to bind the async validation logic to.
  * @param opts The async validation options.
@@ -140,7 +141,8 @@ export function validateAsync<TValue, TParams, TResult, TPathKind extends PathKi
   const RESOURCE = property(path, (ctx) => {
     const params = computed(() => {
       const node = ctx.stateOf(path) as FieldNode;
-      if (node.validationState.shouldSkipValidation() || !node.syncValid()) {
+      const validationState = node.validationState;
+      if (validationState.shouldSkipValidation() || !validationState.syncValid()) {
         return undefined;
       }
       return opts.params(ctx);
@@ -172,6 +174,7 @@ export function validateAsync<TValue, TParams, TResult, TPathKind extends PathKi
 
 /**
  * Adds async validation to the field corresponding to the given path based on an httpResource.
+ * Async validation for a field only runs once all synchronous validation is passing.
  *
  * @param path A path indicating the field to bind the async validation logic to.
  * @param opts The http validation options.

@@ -1,19 +1,15 @@
+import { JsonPipe } from '@angular/common';
 import { Component, linkedSignal, Signal, signal } from '@angular/core';
-import { LinkedSignal } from './examples/linked-signal';
-import { Resource } from './examples/resource';
 
 @Component({
-  selector: 'app-root',
+  selector: 'app-linked-signal',
   template: `
-    <!-- <app-reactive-form />
-    <hr />
-    <app-signal-form /> -->
-    <app-linked-signal />
-    <app-resource />
+    <pre><code>{{ shippingOptions() | json }}</code></pre>
+    <pre><code>{{ selectedOption() | json }}</code></pre>
   `,
-  imports: [LinkedSignal, Resource],
+  imports: [JsonPipe],
 })
-export class App {
+export class LinkedSignal {
   shippingOptions: Signal<{ name: string }[]> = signal([
     { name: 'Standard' },
     { name: 'Express' },

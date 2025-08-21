@@ -1,26 +1,13 @@
 import { Component, linkedSignal, Signal, signal } from '@angular/core';
 import { LinkedSignal } from './examples/linked-signal';
 import { Resource } from './examples/resource';
+import { ReactiveFormComponent } from '../reactive-form.service';
+import { SignalFormComponent } from '../signal-form.service';
+import { Parent } from './child-form-example/parent';
 
 @Component({
   selector: 'app-root',
-  template: `
-    <!-- <app-reactive-form />
-    <hr />
-    <app-signal-form /> -->
-    <app-linked-signal />
-    <app-resource />
-  `,
-  imports: [LinkedSignal, Resource],
+  template: ` <app-parent /> `,
+  imports: [Parent],
 })
-export class App {
-  shippingOptions: Signal<{ name: string }[]> = signal([
-    { name: 'Standard' },
-    { name: 'Express' },
-    { name: 'Overnight' },
-  ]);
-  selectedOption = linkedSignal(() => this.shippingOptions()[0]);
-  changeShipping(index: number) {
-    this.selectedOption.set(this.shippingOptions()[index]);
-  }
-}
+export class App {}

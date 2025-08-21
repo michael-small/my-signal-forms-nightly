@@ -20,10 +20,7 @@ function fetchUser(userId: string): Promise<User> {
 @Component({
   selector: 'app-resource',
   imports: [JsonPipe],
-  template: ` <p>resource works!</p> `,
-  styles: `
-    <pre>{{ userResource() | json }}</pre>
-  `,
+  template: ` <pre>{{ userResource.value() | json }}</pre> `,
 })
 export class Resource {
   userId: Signal<string> = signal('1');

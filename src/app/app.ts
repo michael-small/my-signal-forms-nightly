@@ -1,5 +1,5 @@
 import { JsonPipe } from '@angular/common';
-import { Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { Control, form, required } from '@angular/forms/signals';
@@ -13,8 +13,8 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 
     <form id="cancel-service-form">
       <mat-button-toggle-group
-        name="cancelReason"
         aria-label="Reason to Cancel"
+        name="cancelReason"
         [control]="cancelServiceForm.reason"
       >
         <mat-button-toggle value="user">Cost</mat-button-toggle>
@@ -22,17 +22,21 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
         <mat-button-toggle value="other">Other</mat-button-toggle>
       </mat-button-toggle-group>
 
-      @if(cancelServiceForm.reason().value() === 'other') {
-      <mat-form-field>
-        <mat-label>Other Explanation</mat-label>
-        <textarea
-          matInput
-          [control]="cancelServiceForm.otherExplanation"
-        ></textarea>
-      </mat-form-field>
+      @if (cancelServiceForm.reason().value() === 'other') {
+        <mat-form-field>
+          <mat-label>Other Explanation</mat-label>
+          <textarea
+            matInput
+            [control]="cancelServiceForm.otherExplanation"
+          ></textarea>
+        </mat-form-field>
       }
 
-      <button mat-raised-button [disabled]="!cancelServiceForm().valid()">
+      <button
+        mat-raised-button
+        [disabled]="!cancelServiceForm().valid()"
+        type="submit"
+      >
         Submit
       </button>
     </form>
@@ -45,6 +49,7 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
     MatButtonToggleModule,
   ],
   styleUrls: [`./styles.scss`],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
   readonly cancelServiceForm = form(
@@ -56,6 +61,6 @@ export class App {
           return valueOf(path.reason) === 'other';
         },
       });
-    }
+    },
   );
 }

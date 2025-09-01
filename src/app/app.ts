@@ -11,7 +11,7 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
   template: `
     <h2>Cancel Service Form</h2>
 
-    <form id="cancel-service-form">
+    <form id="cancel-service-form" (ngSubmit)="$event.preventDefault()">
       <mat-button-toggle-group
         aria-label="Reason to Cancel"
         name="cancelReason"
@@ -60,6 +60,11 @@ export class App {
         when({ valueOf }) {
           return valueOf(path.reason) === 'other';
         },
+
+        // Alternate syntax
+        // when({ value }) {
+        //   return value() === 'other';
+        // },
       });
     },
   );

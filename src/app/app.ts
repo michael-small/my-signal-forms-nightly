@@ -1,77 +1,17 @@
-import { JsonPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { Control, form, required } from '@angular/forms/signals';
-import { MatButtonModule } from '@angular/material/button';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { BasicForm } from './basic-form';
 import { BasicFormValidators } from './basic-form-validators';
+import { CancelServiceForm } from './cancel-service-form';
 
 @Component({
   selector: 'app-root',
   template: `
-    <h2>Cancel Service Form</h2>
-
-    <form id="cancel-service-form" (ngSubmit)="$event.preventDefault()">
-      <mat-button-toggle-group
-        aria-label="Reason to Cancel"
-        name="cancelReason"
-        [control]="cancelServiceForm.reason"
-      >
-        <mat-button-toggle value="user">Cost</mat-button-toggle>
-        <mat-button-toggle value="spam">No longer use</mat-button-toggle>
-        <mat-button-toggle value="other">Other</mat-button-toggle>
-      </mat-button-toggle-group>
-
-      @if (cancelServiceForm.reason().value() === 'other') {
-        <mat-form-field>
-          <mat-label>Other Explanation</mat-label>
-          <textarea
-            matInput
-            [control]="cancelServiceForm.otherExplanation"
-          ></textarea>
-        </mat-form-field>
-      }
-
-      <button
-        mat-raised-button
-        type="submit"
-        [disabled]="!cancelServiceForm().valid()"
-      >
-        Submit
-      </button>
-    </form>
     <app-basic-form />
     <app-basic-form-validators />
+    <app-cancel-service-form />
   `,
-  imports: [
-    Control, // <--- for `[control]="myForm.someField"` directive
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatButtonToggleModule,
-    BasicForm,
-    BasicFormValidators,
-  ],
+  imports: [BasicForm, BasicFormValidators, CancelServiceForm],
   styleUrls: [`./styles.scss`],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class App {
-  readonly cancelServiceForm = form(
-    signal({ reason: '', otherExplanation: '' }),
-    (path) => {
-      required(path.reason);
-      required(path.otherExplanation, {
-        when({ valueOf }) {
-          return valueOf(path.reason) === 'other';
-        },
-
-        // Alternate syntax
-        // when({ value }) {
-        //   return value() === 'other';
-        // },
-      });
-    },
-  );
-}
+export class App {}

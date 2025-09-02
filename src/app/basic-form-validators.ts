@@ -8,6 +8,7 @@ import { FormData } from './form-data';
   selector: 'app-basic-form-validators',
   imports: [Control, MatFormFieldModule, MatInputModule, FormData],
   template: `
+    <h2>Basic Form with Validators</h2>
     <form>
       <mat-form-field>
         <mat-label>Input</mat-label>

@@ -6,6 +6,7 @@ import { Control, form, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { BasicForm } from './basic-form';
+import { BasicFormValidators } from './basic-form-validators';
 
 @Component({
   selector: 'app-root',
@@ -42,6 +43,7 @@ import { BasicForm } from './basic-form';
       </button>
     </form>
     <app-basic-form />
+    <app-basic-form-validators />
   `,
   imports: [
     Control, // <--- for `[control]="myForm.someField"` directive
@@ -50,6 +52,7 @@ import { BasicForm } from './basic-form';
     MatButtonModule,
     MatButtonToggleModule,
     BasicForm,
+    BasicFormValidators,
   ],
   styleUrls: [`./styles.scss`],
   changeDetection: ChangeDetectionStrategy.OnPush,

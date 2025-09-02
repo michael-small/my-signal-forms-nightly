@@ -5,6 +5,7 @@ import { MatInputModule } from '@angular/material/input';
 import { Control, form, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { BasicForm } from './basic-form';
 
 @Component({
   selector: 'app-root',
@@ -34,12 +35,13 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 
       <button
         mat-raised-button
-        [disabled]="!cancelServiceForm().valid()"
         type="submit"
+        [disabled]="!cancelServiceForm().valid()"
       >
         Submit
       </button>
     </form>
+    <app-basic-form />
   `,
   imports: [
     Control, // <--- for `[control]="myForm.someField"` directive
@@ -47,6 +49,7 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
     MatInputModule,
     MatButtonModule,
     MatButtonToggleModule,
+    BasicForm,
   ],
   styleUrls: [`./styles.scss`],
   changeDetection: ChangeDetectionStrategy.OnPush,

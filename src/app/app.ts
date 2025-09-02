@@ -42,7 +42,7 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
     </form>
   `,
   imports: [
-    Control,
+    Control, // <--- for `[control]="myForm.someField"` directive
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,

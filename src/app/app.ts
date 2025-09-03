@@ -3,6 +3,7 @@ import { BasicForm } from './examples/basic-form';
 import { BasicFormValidators } from './examples/basic-form-validators';
 import { CancelServiceForm } from './examples/cancel-service-form';
 import { Schema } from './examples/schema';
+import { ResetsField } from './resets-field';
 
 @Component({
   selector: 'app-root',
@@ -12,7 +13,13 @@ import { Schema } from './examples/schema';
     <app-cancel-service-form />
     <app-schema />
   `,
-  imports: [BasicForm, BasicFormValidators, CancelServiceForm, Schema],
+  imports: [
+    BasicForm,
+    BasicFormValidators,
+    CancelServiceForm,
+    Schema,
+    ResetsField,
+  ],
   styleUrls: [`./styles.scss`],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

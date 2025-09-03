@@ -48,7 +48,10 @@ const passwordSchema = schema<ConfirmedPassword>((path) => {
   selector: 'app-schema',
   imports: [Control, MatFormFieldModule, MatInputModule, FormData],
   template: `
-    <h2>Form with Schema</h2>
+    <h2>
+      Form with Schema: Using a schema, and cross-field validation with custom
+      validator
+    </h2>
     <a
       href="https://github.com/angular/angular/blob/prototype/signal-forms/packages/forms/signals/docs/signal-forms.md#creating-and-applying-a-schema"
       target="_blank"

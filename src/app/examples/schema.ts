@@ -25,7 +25,8 @@ const passwordSchema = schema<ConfirmedPassword>((path) => {
   // Adds validation logic to require a value for `password`.
   required(path.password);
   // Adds validation logic to require a value for `confirm`.
-  required(path.confirm);
+  // Can optionally pass a custom message which could be used by the UI.
+  required(path.confirm, { message: 'Confirm Password is required' });
 
   // Requires both fields to match
   validate(path, ({ value }) =>

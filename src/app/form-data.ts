@@ -13,6 +13,7 @@ import { FieldState } from '@angular/forms/signals';
     <p>touched: {{ form.touched() }}</p>
     <p>dirty: {{ form.dirty() }}</p>
     <p>errors: {{ form.errors() | json }}</p>
+    <p>errorSummary: {{ form.errorSummary() | json }}</p>
   `,
   styles: ``,
   changeDetection: ChangeDetectionStrategy.OnPush,

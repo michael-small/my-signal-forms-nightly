@@ -3,19 +3,19 @@
 // components according to the Material 3 design spec.
 // Learn more about theming and how to use it for your application's
 // custom components at https://material.angular.dev/guide/theming
-@use "@angular/material" as mat;
+// @use "@angular/material" as mat;
 
 html {
-  @include mat.theme(
-    (
-      color: (
-        primary: mat.$azure-palette,
-        tertiary: mat.$blue-palette,
-      ),
-      typography: Roboto,
-      density: 0,
-    )
-  );
+  // @include mat.theme(
+  //   (
+  //     color: (
+  //       primary: mat.$azure-palette,
+  //       tertiary: mat.$blue-palette,
+  //     ),
+  //     typography: Roboto,
+  //     density: 0,
+  //   )
+  // );
 }
 
 body {
@@ -27,9 +27,9 @@ body {
   // Set a default background, font and text colors for the application using
   // Angular Material's system-level CSS variables. Learn more about these
   // variables at https://material.angular.dev/guide/system-variables
-  background-color: var(--mat-sys-surface);
-  color: var(--mat-sys-on-surface);
-  font: var(--mat-sys-body-medium);
+  // background-color: var(--mat-sys-surface);
+  // color: var(--mat-sys-on-surface);
+  // font: var(--mat-sys-body-medium);
 
   // Reset the user agent margin.
   margin: 0;

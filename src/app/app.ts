@@ -7,9 +7,9 @@ import { Schema } from './examples/schema';
 @Component({
   selector: 'app-root',
   template: `
-    <!-- <app-basic-form />
+    <app-basic-form />
     <app-basic-form-validators />
-    <app-cancel-service-form /> -->
+    <app-cancel-service-form />
     <app-schema />
   `,
   imports: [BasicForm, BasicFormValidators, CancelServiceForm, Schema],

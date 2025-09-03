@@ -12,8 +12,8 @@ import { FieldState } from '@angular/forms/signals';
     <p>valid: {{ form.valid() }}</p>
     <p>touched: {{ form.touched() }}</p>
     <p>dirty: {{ form.dirty() }}</p>
-    <p>errors: {{ form.errors() | json }}</p>
-    <p>errorSummary: {{ form.errorSummary() | json }}</p>
+    <pre>errors: {{ form.errors() | json }}</pre>
+    <pre>errorSummary: {{ form.errorSummary() | json }}</pre>
   `,
   styles: ``,
   changeDetection: ChangeDetectionStrategy.OnPush,

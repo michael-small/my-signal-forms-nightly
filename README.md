@@ -1,3 +1,5 @@
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/michael-small/my-signal-forms-nightly)
+
 # MySignalFormsNightly
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.1.1.

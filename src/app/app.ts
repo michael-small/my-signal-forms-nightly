@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { BasicForm } from './basic-form';
-import { BasicFormValidators } from './basic-form-validators';
-import { CancelServiceForm } from './cancel-service-form';
+import { BasicForm } from './examples/basic-form';
+import { BasicFormValidators } from './examples/basic-form-validators';
+import { CancelServiceForm } from './examples/cancel-service-form';
 
 @Component({
   selector: 'app-root',

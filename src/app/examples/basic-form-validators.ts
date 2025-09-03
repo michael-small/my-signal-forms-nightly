@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { Control, form, required } from '@angular/forms/signals';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { FormData } from './form-data';
+import { FormData } from '../form-data';
 
 @Component({
   selector: 'app-basic-form-validators',

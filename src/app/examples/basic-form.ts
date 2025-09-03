@@ -2,11 +2,11 @@ import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { Control, form } from '@angular/forms/signals';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { FormData } from '../form-data';
+import { FormDebugData } from '../form-debug-data';
 
 @Component({
   selector: 'app-basic-form',
-  imports: [Control, MatFormFieldModule, MatInputModule, FormData],
+  imports: [Control, MatFormFieldModule, MatInputModule, FormDebugData],
   template: `
     <h2>Basic Form</h2>
     <form>
@@ -16,7 +16,7 @@ import { FormData } from '../form-data';
       </mat-form-field>
     </form>
 
-    <app-form-data [form]="myForm" />
+    <app-form-debug-data [form]="myForm" />
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

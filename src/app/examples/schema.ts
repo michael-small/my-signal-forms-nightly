@@ -10,7 +10,7 @@ import {
 } from '@angular/forms/signals';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { FormData } from '../form-data';
+import { FormDebugData } from '../form-debug-data';
 
 // https://github.com/angular/angular/blob/prototype/signal-forms/packages/forms/signals/docs/signal-forms.md#creating-and-applying-a-schema
 // Define the data type for the form.
@@ -47,7 +47,7 @@ const passwordSchema = schema<ConfirmedPassword>((path) => {
 
 @Component({
   selector: 'app-schema',
-  imports: [Control, MatFormFieldModule, MatInputModule, FormData],
+  imports: [Control, MatFormFieldModule, MatInputModule, FormDebugData],
   template: `
     <h2>
       Form with Schema: Using a schema, and cross-field validation with custom
@@ -84,7 +84,13 @@ const passwordSchema = schema<ConfirmedPassword>((path) => {
       <mat-error>{{ passwordForm().errors()[0]?.message }}</mat-error>
     }
 
-    <app-form-data [form]="passwordForm" />
+    <app-form-debug-data [form]="passwordForm" />
+  `,
+  styles: `
+    form {
+      display: flex;
+      gap: 16px;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

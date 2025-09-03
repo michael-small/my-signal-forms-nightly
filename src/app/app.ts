@@ -8,6 +8,8 @@ import { ResetsField } from './resets-field';
 @Component({
   selector: 'app-root',
   template: `
+    <h1>Signal Forms Examples</h1>
+
     <app-basic-form />
     <app-basic-form-validators />
     <app-cancel-service-form />

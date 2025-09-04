@@ -7,6 +7,7 @@ import { ResetsField } from './resets-field';
 import { Disabled } from './examples/disabled';
 import { JeanMecheExample } from './examples/jean-meche-example';
 import { Readonly } from './examples/readonly';
+import { Hidden } from './examples/hidden';
 
 @Component({
   selector: 'app-root',
@@ -45,6 +46,8 @@ import { Readonly } from './examples/readonly';
       >
     </section>
 
+    <!-- <app-hidden /> -->
+
     <app-jean-meche-example />
     <app-basic-form />
     <app-basic-form-validators />
@@ -62,6 +65,7 @@ import { Readonly } from './examples/readonly';
     Disabled,
     JeanMecheExample,
     Readonly,
+    Hidden,
   ],
   styleUrls: [`./styles.scss`],
   changeDetection: ChangeDetectionStrategy.OnPush,

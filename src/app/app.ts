@@ -15,6 +15,14 @@ import { Readonly } from './examples/readonly';
 
     <section id="about">
       <p>
+        NOTE: due to a weird Stackblitz/Material/Firefox
+        <a
+          href="https://github.com/angular/components/issues/31823"
+          target="_blank"
+          >bug</a
+        >, I am commenting out the Material theme before pushing to main.
+      </p>
+      <p>
         Work in progress. A small subset of what is possible already. The
         Angular team put a ton of work into this new API and is continuing to
         improve it, but they wanted to get this into our hands to experiment.

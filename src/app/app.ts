@@ -6,6 +6,7 @@ import { Schema } from './examples/schema';
 import { ResetsField } from './resets-field';
 import { Disabled } from './examples/disabled';
 import { JeanMecheExample } from './examples/jean-meche-example';
+import { Readonly } from './examples/readonly';
 
 @Component({
   selector: 'app-root',
@@ -42,6 +43,7 @@ import { JeanMecheExample } from './examples/jean-meche-example';
     <app-cancel-service-form />
     <app-schema />
     <app-disabled />
+    <app-readonly />
   `,
   imports: [
     BasicForm,
@@ -51,6 +53,7 @@ import { JeanMecheExample } from './examples/jean-meche-example';
     ResetsField,
     Disabled,
     JeanMecheExample,
+    Readonly,
   ],
   styleUrls: [`./styles.scss`],
   changeDetection: ChangeDetectionStrategy.OnPush,

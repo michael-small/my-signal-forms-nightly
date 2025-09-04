@@ -27,7 +27,8 @@ import { FieldState } from '@angular/forms/signals';
       padding: 8px;
       background: #f3f3f3;
       border: 1px solid orange;
-      max-width: 50%;
+      // Look, I'm new to clamp/min/max, I know this is probably rough lol
+      width: clamp(min(500px, 100%), 50%, max(1000px, 50%));
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

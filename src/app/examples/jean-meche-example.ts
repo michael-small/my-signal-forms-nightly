@@ -11,10 +11,10 @@ import { Control, form, pattern, required } from '@angular/forms/signals';
       href="https://www.reddit.com/r/angular/comments/1n7pcn6/signal_forms_for_you_to_experiment_with/"
       target="_blank"
       >Code from Matthieu Riegler (/u/JeanMeche)</a
-    >
+    ><br />
 
     <input [control]="nameForm.first" />
-    <input [control]="nameForm.last" />
+    <input [control]="nameForm.last" /><br />
 
     <!-- Form validity -->
     valid: {{ nameForm().valid() }}

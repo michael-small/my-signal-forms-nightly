@@ -5,6 +5,7 @@ import { CancelServiceForm } from './examples/cancel-service-form';
 import { Schema } from './examples/schema';
 import { ResetsField } from './resets-field';
 import { Disabled } from './examples/disabled';
+import { JeanMecheExample } from './examples/jean-meche-example';
 
 @Component({
   selector: 'app-root',
@@ -35,6 +36,7 @@ import { Disabled } from './examples/disabled';
       >
     </section>
 
+    <app-jean-meche-example />
     <app-basic-form />
     <app-basic-form-validators />
     <app-cancel-service-form />
@@ -48,6 +50,7 @@ import { Disabled } from './examples/disabled';
     Schema,
     ResetsField,
     Disabled,
+    JeanMecheExample,
   ],
   styleUrls: [`./styles.scss`],
   changeDetection: ChangeDetectionStrategy.OnPush,

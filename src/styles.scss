@@ -1,17 +1,17 @@
-@use "@angular/material" as mat;
+// @use "@angular/material" as mat;
 
-html {
-  @include mat.theme(
-    (
-      color: (
-        primary: mat.$azure-palette,
-        tertiary: mat.$blue-palette,
-      ),
-      typography: Roboto,
-      density: 0,
-    )
-  );
-}
+// html {
+//   @include mat.theme(
+//     (
+//       color: (
+//         primary: mat.$azure-palette,
+//         tertiary: mat.$blue-palette,
+//       ),
+//       typography: Roboto,
+//       density: 0,
+//     )
+//   );
+// }
 
 body {
   color-scheme: light;

@@ -5,6 +5,9 @@ import { CancelServiceForm } from './examples/cancel-service-form';
 import { Schema } from './examples/schema';
 import { ResetsField } from './resets-field';
 import { Disabled } from './examples/disabled';
+import { JeanMecheExample } from './examples/jean-meche-example';
+import { Readonly } from './examples/readonly';
+import { Hidden } from './examples/hidden';
 
 @Component({
   selector: 'app-root',
@@ -12,6 +15,14 @@ import { Disabled } from './examples/disabled';
     <h1>Signal Forms Examples</h1>
 
     <section id="about">
+      <p>
+        NOTE: due to a weird Stackblitz/Material/Firefox
+        <a
+          href="https://github.com/angular/components/issues/31823"
+          target="_blank"
+          >bug</a
+        >, I am commenting out the Material theme before pushing to main.
+      </p>
       <p>
         Work in progress. A small subset of what is possible already. The
         Angular team put a ton of work into this new API and is continuing to
@@ -35,11 +46,15 @@ import { Disabled } from './examples/disabled';
       >
     </section>
 
+    <!-- <app-hidden /> -->
+
+    <app-jean-meche-example />
     <app-basic-form />
     <app-basic-form-validators />
     <app-cancel-service-form />
     <app-schema />
     <app-disabled />
+    <app-readonly />
   `,
   imports: [
     BasicForm,
@@ -48,6 +63,9 @@ import { Disabled } from './examples/disabled';
     Schema,
     ResetsField,
     Disabled,
+    JeanMecheExample,
+    Readonly,
+    Hidden,
   ],
   styleUrls: [`./styles.scss`],
   changeDetection: ChangeDetectionStrategy.OnPush,
